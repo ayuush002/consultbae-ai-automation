@@ -2,8 +2,9 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+import pandas as pd
 
-from automation.ingest_and_merge import FILES, city, ctc, date, email, phone, rate, run
+from automation.ingest_and_merge import FILES, SchemaError, city, ctc, date, email, phone, rate, run
 
 
 class CleaningTests(unittest.TestCase):
@@ -49,6 +50,25 @@ class PipelineTests(unittest.TestCase):
                     "SELECT phone, source_row_count FROM candidates WHERE full_name='Arjun Mehta' ORDER BY phone"
                 ).fetchall()
                 self.assertEqual(arjuns, [(None, 1), ("9000000131", 2), ("9000000272", 1)])
+
+    def test_extra_columns_and_known_column_aliases_are_accepted(self):
+        with tempfile.TemporaryDirectory() as folder:
+            changed=Path(folder)/"renamed.csv"
+            frame=pd.read_csv(FILES["naukri"])
+            frame["LinkedIn URL"]="https://example.com/profile"
+            frame.rename(columns={"Full Name":"Candidate Name","Phone":"Mobile"}).to_csv(changed,index=False)
+            selected={**FILES,"naukri":changed}
+            summary=run(selected,Path(folder)/"test.db")
+            self.assertEqual(summary["raw rows"],105)
+
+    def test_missing_required_column_fails_before_database_is_changed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            changed=Path(folder)/"missing.csv"; database=Path(folder)/"existing.db"
+            pd.read_csv(FILES["naukri"]).drop(columns=["Email"]).to_csv(changed,index=False)
+            database.write_text("keep this existing database safe")
+            with self.assertRaisesRegex(SchemaError,"missing required columns: Email"):
+                run({**FILES,"naukri":changed},database)
+            self.assertEqual(database.read_text(),"keep this existing database safe")
 
 
 if __name__ == "__main__":

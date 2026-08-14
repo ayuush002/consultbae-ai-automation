@@ -16,6 +16,40 @@ FILES = {
 CITIES = {"bangalore":"Bengaluru", "bengaluru":"Bengaluru", "delhi":"Delhi NCR",
           "new delhi":"Delhi NCR", "delhi ncr":"Delhi NCR", "gurgaon":"Gurugram",
           "gurugram":"Gurugram", "noida":"Noida", "pune":"Pune"}
+SCHEMAS = {
+  "naukri": {
+    "Full Name":["Candidate Name","Name"], "Email":["Email Address","email_id"],
+    "Phone":["Phone Number","Mobile"], "City":["Location"],
+    "Experience (Years)":["Experience","Years of Experience"], "Current CTC":["CTC"],
+    "Applied Date":["Application Date"], "Skills":["Skill Tags"]},
+  "gig_workers": {
+    "email_id":["Email","Email Address"], "worker_name":["Worker Name","Name"],
+    "rate":["Rate"], "location":["Location","City"], "status":["Status"],
+    "skill_tags":["Skill Tags","Skills"]},
+  "cbnexus": {
+    "Name":["Full Name","Contact Name"], "Phone Number":["Phone","Mobile"],
+    "City":["Location"], "Verified":["Is Verified"],
+    "Projects Completed":["Completed Projects"]},
+}
+
+class SchemaError(ValueError):
+    """Raised before database writing when an input file has unsafe columns."""
+
+def read_source(path: Path, source: str) -> pd.DataFrame:
+    if not path.exists():
+        raise SchemaError(f"{source}: file not found: {path}")
+    frame=pd.read_csv(path)
+    # Match column aliases without caring about capitalization or outer spaces.
+    available={str(column).strip().lower():column for column in frame.columns}
+    rename={}
+    missing=[]
+    for canonical, aliases in SCHEMAS[source].items():
+        found=next((available[name.lower()] for name in [canonical,*aliases] if name.lower() in available),None)
+        if found is None: missing.append(canonical)
+        else: rename[found]=canonical
+    if missing:
+        raise SchemaError(f"{source}: missing required columns: {', '.join(missing)}")
+    return frame.rename(columns=rename)
 
 def text(value: Any) -> str | None:
     if pd.isna(value): return None
@@ -71,7 +105,7 @@ def base(source: str, row_number: int, raw: dict) -> dict:
 
 def load_naukri(path: Path) -> tuple[list[dict], list[tuple]]:
     output=[]
-    for i, raw in pd.read_csv(path).iterrows():
+    for i, raw in read_source(path,"naukri").iterrows():
         row=base("naukri", i+2, raw.to_dict())
         row.update(full_name=text(raw["Full Name"]).title(), email=email(raw.Email),
           phone=phone(raw.Phone), city=city(raw.City), experience_years=float(raw["Experience (Years)"]),
@@ -82,7 +116,7 @@ def load_naukri(path: Path) -> tuple[list[dict], list[tuple]]:
 
 def load_gig(path: Path) -> tuple[list[dict], list[tuple]]:
     output, rejected = [], []
-    for i, series in pd.read_csv(path).iterrows():
+    for i, series in read_source(path,"gig_workers").iterrows():
         n=i+2; raw=series.to_dict()
         if series.isna().all():
             rejected.append(("gig_workers", n, "completely blank row", json.dumps(raw, default=str))); continue
@@ -102,7 +136,7 @@ def load_gig(path: Path) -> tuple[list[dict], list[tuple]]:
 
 def load_cbnexus(path: Path) -> tuple[list[dict], list[tuple]]:
     output, rejected = [], []
-    for i, raw in pd.read_csv(path).iterrows():
+    for i, raw in read_source(path,"cbnexus").iterrows():
         n=i+2; data=raw.to_dict()
         if text(raw.Name)=="Name" and text(raw["Phone Number"])=="Phone Number":
             rejected.append(("cbnexus", n, "repeated header row", json.dumps(data))); continue
@@ -188,8 +222,15 @@ def run(files: dict[str,Path], database: Path) -> dict[str,int]:
       "unique candidates":len(candidates), "duplicates merged":len(rows)-len(candidates)}
 
 def main():
-    parser=argparse.ArgumentParser(); parser.add_argument("--database",type=Path,default=ROOT/"consultbae.db")
-    args=parser.parse_args(); summary=run(FILES,args.database)
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--database",type=Path,default=ROOT/"consultbae.db")
+    parser.add_argument("--naukri",type=Path,default=FILES["naukri"])
+    parser.add_argument("--gig-workers",type=Path,default=FILES["gig_workers"])
+    parser.add_argument("--cbnexus",type=Path,default=FILES["cbnexus"])
+    args=parser.parse_args()
+    selected={"naukri":args.naukri,"gig_workers":args.gig_workers,"cbnexus":args.cbnexus}
+    try: summary=run(selected,args.database)
+    except SchemaError as error: parser.error(str(error))
     print("\nConsultBae ingestion completed")
     for label,value in summary.items(): print(f"  {label.title():20} {value}")
     print(f"\nDatabase: {args.database}")
