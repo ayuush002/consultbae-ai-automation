@@ -48,6 +48,11 @@ Python normalization + identity resolution
 
 The full analysis is in [docs/data_quality_report.md](docs/data_quality_report.md).
 
+Supporting engineering notes:
+
+- [Stuck and decision log](docs/stuck_and_decision_log.md)
+- [Production scaling note](docs/scaling_note.md)
+
 ## Run locally
 
 ### Requirements
