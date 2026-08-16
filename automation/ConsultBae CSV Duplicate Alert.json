@@ -1,0 +1,281 @@
+{
+  "name": "ConsultBae CSV Duplicate Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "d9e64384-0a86-41f3-b08e-0ff2b2ec1e91",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://consultbae-ai-automation.onrender.com/api/candidates/check",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $json.email || $json.Email || $json.email_id || \"\" }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $json.phone || $json.Phone || $json[\"Phone Number\"] || \"\" }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        0
+      ],
+      "id": "b257ffb7-f838-4fb5-97ef-e636675d2c2d",
+      "name": "Check Candidate API"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        672,
+        0
+      ],
+      "id": "b193ec72-f8c1-41db-8ff8-5d449a0a6778",
+      "name": "Collect Check Results"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1b956959-a168-425c-8cfc-fde0a56ff9c0",
+              "name": "status",
+              "value": "={{ $json.results.some(item => item.duplicate) ? \"duplicate_alert\" : \"no_duplicates\" }}",
+              "type": "string"
+            },
+            {
+              "id": "8cfd032f-fbcd-4237-ba46-b3914fa00bce",
+              "name": "total_records",
+              "value": "={{ $json.results.length }}",
+              "type": "number"
+            },
+            {
+              "id": "43bda5a4-f1f7-4f76-9d15-445e7e5cc23f",
+              "name": "duplicate_count",
+              "value": "={{ $json.results.filter(item => item.duplicate).length }}",
+              "type": "number"
+            },
+            {
+              "id": "895bde25-dd46-4675-9de7-7ff8b4fc267d",
+              "name": "new_count",
+              "value": "={{ $json.results.filter(item => !item.duplicate).length }}",
+              "type": "number"
+            },
+            {
+              "id": "cdfb5dff-705b-4f33-a035-ffe95253e34a",
+              "name": "duplicates",
+              "value": "={{ $json.results.filter(item => item.duplicate).flatMap(item => item.candidates) }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        896,
+        0
+      ],
+      "id": "424ca408-1434-4b84-9b58-04080de48c53",
+      "name": "Build Summary"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1ae30a0c-8927-4f03-853e-35dd7f18bb27",
+              "leftValue": "={{ $json.duplicate_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1072,
+        -16
+      ],
+      "id": "16f4ae07-8c4a-41d6-b63a-6ba2f147461b",
+      "name": "Duplicates Found?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  message: \"Duplicate candidates found in uploaded CSV\",\n  ...$(\"Build Summary\").first().json\n} }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1296,
+        -112
+      ],
+      "id": "2bf66ec9-3a9a-4a0d-b57e-cbbfab55b128",
+      "name": "Send Duplicate Alert"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  message: \"No duplicate candidates found\",\n  ...$(\"Build Summary\").first().json\n} }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1296,
+        80
+      ],
+      "id": "c6739955-3890-44f6-9a2c-cff52165461c",
+      "name": "Send No-Duplicates Response"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "candidate-csv-duplicate-check",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e48936b7-59da-4c35-a429-6b72dc6c1999",
+      "name": "Webhook",
+      "webhookId": "9291d59c-f4c4-4df9-a8e8-2b9cac332ff1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Check Candidate API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Candidate API": {
+      "main": [
+        [
+          {
+            "node": "Collect Check Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Check Results": {
+      "main": [
+        [
+          {
+            "node": "Build Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary": {
+      "main": [
+        [
+          {
+            "node": "Duplicates Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Duplicates Found?": {
+      "main": [
+        [
+          {
+            "node": "Send Duplicate Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send No-Duplicates Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ccf7afc7-4f8a-425c-903d-b87fa82a6e64",
+  "meta": {
+    "instanceId": "a53511d6d4e935f7d2d730b20758094c7d70be8f84bd949feb32c4b6366a6656"
+  },
+  "nodeGroups": [],
+  "id": "4Jxmw4kKibn76qbm",
+  "tags": []
+}
