@@ -47,6 +47,11 @@ def create_app(database_path: Path | None = None, upload_folder: Path | None = N
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )""")
 
+    @app.errorhandler(413)
+    def file_too_large(_error):
+        flash("The audio file is larger than the 20 MB limit.", "error")
+        return redirect(url_for("home")), 413
+
     @app.get("/")
     def home():
         return render_template("index.html")
