@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Audio Submissions · ConsultBae</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="wide-shell">
+    <header class="list-header">
+      <div><p class="eyebrow">Collection dashboard</p><h1>Audio submissions</h1></div>
+      <a class="button-link" href="{{ url_for('home') }}">+ New submission</a>
+    </header>
+    {% if submissions %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Worker</th><th>Audio</th><th>Duration</th><th>Sample rate</th><th>Bitrate</th><th>Loudness</th><th>Quality</th><th>Submitted</th></tr></thead>
+      <tbody>{% for item in submissions %}<tr>
+        <td><strong>{{ item.submitted_name }}</strong><br><small>{{ item.submitted_phone }}</small></td>
+        <td><audio controls preload="metadata" src="{{ url_for('uploaded_audio', filename=item.stored_filename) }}"></audio></td>
+        <td>{{ '%.2f'|format(item.duration_seconds) }} s</td>
+        <td>{{ '%.1f'|format(item.sample_rate_hz / 1000) }} kHz</td>
+        <td>{{ '%.1f'|format(item.bitrate_kbps) }} kbps</td>
+        <td>{{ '%.2f'|format(item.loudness_dbfs) }} dBFS</td>
+        <td><span class="quality">{{ item.quality_estimate }}</span></td>
+        <td>{{ item.created_at }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<section class="empty"><h2>No submissions yet</h2><p>Upload the first WAV recording to see its properties here.</p></section>{% endif %}
+  </main>
+</body>
+</html>

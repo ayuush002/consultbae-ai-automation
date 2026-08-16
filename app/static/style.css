@@ -1,0 +1,26 @@
+:root { color-scheme: light; --ink:#17231d; --muted:#66736c; --paper:#f4f1e8; --card:#fffdf7; --accent:#167052; --line:#d9ddd7; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--paper); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif; }
+.shell,.wide-shell { width:min(680px,calc(100% - 32px)); margin:7vh auto; }
+.wide-shell { width:min(1280px,calc(100% - 32px)); }
+header { margin-bottom:30px; }
+.eyebrow { color:var(--accent); font-size:.75rem; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+h1 { margin:5px 0 12px; font-family:Georgia,serif; font-size:clamp(2rem,5vw,3.8rem); font-weight:500; line-height:1; }
+.intro,.hint,small { color:var(--muted); }
+form { display:grid; gap:18px; padding:28px; border:1px solid var(--line); border-radius:18px; background:var(--card); box-shadow:0 18px 50px #17231d12; }
+label { display:grid; gap:8px; font-weight:700; }
+input { width:100%; padding:13px 14px; border:1px solid #bdc5c0; border-radius:9px; background:white; font:inherit; }
+input:focus { outline:3px solid #16705225; border-color:var(--accent); }
+button,.button-link { border:0; border-radius:9px; background:var(--accent); color:white; padding:13px 18px; font:inherit; font-weight:800; text-align:center; text-decoration:none; cursor:pointer; }
+.hint { margin:-10px 0 0; font-size:.82rem; }
+.secondary { display:inline-block; margin-top:20px; color:var(--accent); font-weight:800; }
+.notice { margin:0 0 18px; padding:13px 16px; border-radius:9px; }
+.notice.success { background:#d9f1e7; }.notice.error { background:#f8dcda; }
+.list-header { display:flex; align-items:end; justify-content:space-between; gap:20px; }
+.table-wrap { overflow:auto; border:1px solid var(--line); border-radius:14px; background:var(--card); }
+table { width:100%; border-collapse:collapse; font-size:.9rem; }
+th,td { padding:14px; border-bottom:1px solid var(--line); text-align:left; white-space:nowrap; }
+th { color:var(--muted); font-size:.72rem; letter-spacing:.05em; text-transform:uppercase; }
+audio { width:220px; height:36px; }.quality { padding:5px 8px; border-radius:20px; background:#e3ede7; font-size:.78rem; }
+.empty { padding:60px; border:1px dashed #adb8b1; border-radius:14px; text-align:center; }
+@media (max-width:650px) { .list-header { align-items:start; flex-direction:column; } form { padding:20px; } }

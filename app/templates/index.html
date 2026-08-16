@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ConsultBae Audio Collection</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <p class="eyebrow">Gig worker collection</p>
+      <h1>Submit your audio sample</h1>
+      <p class="intro">Upload one uncompressed WAV recording. We’ll securely record its technical properties.</p>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}<div class="notice {{ category }}">{{ message }}</div>{% endfor %}
+    {% endwith %}
+
+    <form action="{{ url_for('submit_audio') }}" method="post" enctype="multipart/form-data">
+      <label>Full name <input name="name" autocomplete="name" required maxlength="100" placeholder="e.g. Tanvi Gupta"></label>
+      <label>Phone number <input name="phone" autocomplete="tel" required placeholder="e.g. +91 9000000254"></label>
+      <label>WAV audio file <input name="audio" type="file" accept=".wav,audio/wav" required></label>
+      <p class="hint">Maximum file size: 20 MB</p>
+      <button type="submit">Submit recording</button>
+    </form>
+    <a class="secondary" href="{{ url_for('submissions') }}">View all submissions →</a>
+  </main>
+</body>
+</html>
