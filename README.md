@@ -211,6 +211,24 @@ The free deployment uses an ephemeral filesystem. Uploaded recordings and audio-
 - Name-and-city matching is conservative but still heuristic.
 - The public endpoint has no authentication because the assignment uses fictional data; production endpoints should require authentication and rate limiting.
 
+## Stuck log: three hardest problems
+
+The complete chronological log is in [docs/stuck_and_decision_log.md](docs/stuck_and_decision_log.md). These were the three hardest points.
+
+### 1. Making ingestion survive changed files and columns
+
+I asked AI: **“What if the number of columns or number of files changes, and how should we handle it?”** I also reviewed how pandas exposes headers before rows are processed. The first suggestion I rejected was matching columns by position or manually changing the script for every new CSV; that would silently map the wrong data after a reorder. I instead added a source-specific schema contract with canonical names and accepted aliases. Extra columns are harmless, but missing required columns fail before the database is replaced. Tests then deliberately add an extra column, use aliases, and remove a required column.
+
+### 2. Getting n8n webhooks and responses to work
+
+I searched/asked about the exact n8n errors: **“webhook is not registered,” “Unused Respond to Webhook node,”** and **“Expression evaluation failed: `$json` is not defined.”** I learned that test webhooks accept one request only after the listener starts, while the published `/webhook/` URL stays registered. I rejected the suggestion to delete the no-duplicates response node because both IF outcomes need a clear caller response; the real unused-node problem was the Webhook's immediate-response setting. I changed it to **Using Respond to Webhook Node** and replaced ambiguous `$json` response expressions with the explicit `$("Build Summary").first().json` reference. I then tested both branches and the published production URL with `curl`.
+
+### 3. Deploying audio analysis without unnecessary dependencies
+
+I compared Node.js, Docker, FFmpeg, and Python options and asked how an evaluator could run the project without having Node installed. I rejected making Node.js or Docker mandatory because the core app did not need them and that would add setup friction. I implemented PCM WAV inspection with Python's standard library. When deployment compatibility showed that `audioop` is unavailable after Python 3.12, I pinned Python 3.12 rather than introducing a system-level FFmpeg dependency late in the assignment. The trade-off is documented: a production version should migrate to a maintained audio library.
+
+AI tools were used for guidance, debugging, code review, and documentation. I manually tested the pipeline, both n8n branches, the production webhook, the deployed audio app, and all 16 automated tests. I reviewed the implementation and can explain its matching, persistence, API, workflow, and audio decisions.
+
 ## Repository structure
 
 ```text
