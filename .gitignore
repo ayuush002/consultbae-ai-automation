@@ -7,3 +7,4 @@ consultbae.db
 uploads/*
 !uploads/.gitkeep
 .env
+data/file_example_WAV_1MG.wav
